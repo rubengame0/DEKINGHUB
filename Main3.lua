@@ -6,7 +6,7 @@ function autoRebirth()
     while _G.autoRebirth do
         local args = {
             [1] = 1,      -- Ajusta según tus necesidades
-            [2] = 90000,  -- Ejemplo de valores
+            [2] = 0,  -- Ejemplo de valores
             [3] = 100
         }
 
