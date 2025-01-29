@@ -1,104 +1,164 @@
--- Valores globales
-_G.autoRebirth = false  -- Inicializamos el auto rebirth en falso
+repeat wait() until game:IsLoaded()
+local Players = game:GetService("Players")
+repeat wait() until Players.LocalPlayer
+local plr = Players.LocalPlayer
+repeat wait() until plr.PlayerGui
+repeat wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
 
--- Función Auto Rebirth
-function autoRebirth()
-    while _G.autoRebirth do
-        local args = {
-            [1] = 1,      -- Ajusta según tus necesidades
-            [2] = 0,  -- Ejemplo de valores
-            [3] = 100
-        }
+local hmr = plr.Character:FindFirstChild("HumanoidRootPart")
+local PlayerGUI = plr:FindFirstChildOfClass("PlayerGui")
 
-        -- Llamamos al evento remoto para confirmar el rebirth
-        game:GetService("ReplicatedStorage").Remotes.RebirthConfirmEvent:FireServer(unpack(args))
-        wait(1)  -- Esperamos un segundo entre cada rebirth
-    end
-end
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- Función para agregar dinero
-local function addMoney(amount)
-    local args = {
-        [1] = "Cash",
-        [2] = tostring(amount)  -- Usamos la cantidad ingresada para dinero
-    }
-    game:GetService("ReplicatedStorage").Remotes.AddValueEvent:FireServer(unpack(args))
-    print("Dinero agregado: " .. amount)
-end
-
--- Función para agregar gemas
-local function addGems(amount)
-    local args = {
-        [1] = amount  -- Usamos la cantidad ingresada para gemas
-    }
-    game:GetService("ReplicatedStorage").Remotes.GemEvent:FireServer(unpack(args))
-    print("Gemas agregadas: " .. amount)
-end
-
--- Cargar OrionLib
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-
-if not OrionLib then
-    warn("Error al cargar OrionLib.")
+-- Cargar ArrayField
+local success, ArrayField = pcall(function()
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/ArrayField/main/Source.lua'))()
+end)
+if not success then
+    warn("Error al cargar ArrayField")
     return
 end
 
--- Crear la ventana de la interfaz
-local Window = OrionLib:MakeWindow({
-    Name = "Merge For Speed KingHub V2",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "KingHubV2.4"
+-- Crear ventana
+local Window = ArrayField:CreateWindow({
+   Name = "Blox Fruits - KingHubV2",
+   LoadingTitle = "Cargando KingHubV2",
+   LoadingSubtitle = "By Birux KingHubV2",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "KingHubV2Goat"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false
 })
 
--- Crear la pestaña de Farming
-local FarmTab = Window:MakeTab({
-    Name = "Farming",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+-- Variables
+_G.selectedFruit = "Dragon (East) Fruit"
+_G.Mas = 1000
 
--- Agregar TextBox para ingresar cantidad de dinero
-FarmTab:AddTextbox({
-    Name = "Add Money",
-    Default = "1000",  -- Valor predeterminado
-    TextDisappear = true,  -- El texto desaparece después de ingresar un valor
-    Callback = function(Value)
-        local amount = tonumber(Value) or 0  -- Convertir el valor a número
-        if amount > 0 then
-            addMoney(amount)  -- Llamar a la función para agregar dinero
-        else
-            warn("Por favor ingresa una cantidad válida.")  -- Si el valor no es válido
-        end
+-- Función para ejecutar RemoteEvents de forma segura
+local function fireRemote(fruitName)
+    local args
+    if fruitName then
+        args = {
+            "EMMFOSS__!ZCNSJNXCSDWQSANBX",
+            "AddToolToBackpackKKK",
+            {
+                fruitName,
+                plr.Backpack,
+                true,
+                true
+            }
+        }
+    else
+        args = {
+            "EMMFOSS__!ZCNSJNXCSDWQSANBX",
+            "AddToolToBackpackKKK",
+            {
+                "Hito Fruit",
+                plr.Backpack,
+                true,
+                true
+            }
+        }
     end
-})
 
--- Agregar TextBox para ingresar cantidad de gemas
-FarmTab:AddTextbox({
-    Name = "Add Gems",
-    Default = "15",  -- Valor predeterminado para las gemas
-    TextDisappear = true,  -- El texto desaparece después de ingresar un valor
-    Callback = function(Value)
-        local amount = tonumber(Value) or 0  -- Convertir el valor a número
-        if amount > 0 then
-            addGems(amount)  -- Llamar a la función para agregar gemas
-        else
-            warn("Por favor ingresa una cantidad válida.")  -- Si el valor no es válido
-        end
+    local RemoteEvent = ReplicatedStorage:FindFirstChild("ALLREMBINDS")
+    if RemoteEvent and RemoteEvent:FindFirstChild("MainRemoteEvent") then
+        RemoteEvent.MainRemoteEvent:FireServer(unpack(args))
+    else
+        warn("Error: RemoteEvent no encontrado en ReplicatedStorage.")
     end
-})
+end
 
--- Agregar Toggle para activar Auto Rebirth
-FarmTab:AddToggle({
-    Name = "Auto Rebirth",
-    Default = false,
-    Callback = function(Value)
-        _G.autoRebirth = Value  -- Cambiar el valor global de autoRebirth
-        if _G.autoRebirth then
-            autoRebirth()  -- Llamar a la función autoRebirth
+-- Crear Tabs
+local FarmTab = Window:CreateTab("FarmTab", 113995428920478)
+local FruitTab = Window:CreateTab("Fruits Givens", 75494093579270)
+
+-- Botón para recolectar cofres
+local Button = FarmTab:CreateButton({
+   Name = "Auto Collect Chest",
+   Interact = 'Click',
+   Callback = function()
+        for _, v in ipairs(Workspace.World.Chests:GetChildren()) do
+            if v:FindFirstChild("TouchInterest") then
+                firetouchinterest(plr.Character.HumanoidRootPart, v, 0)
+                wait(1)
+                firetouchinterest(plr.Character.HumanoidRootPart, v, 1)
+            end
         end
-    end    
+   end,
 })
 
--- Inicializar la interfaz
-OrionLib:Init()
+-- Slider para configurar la maestría
+local Slider = FarmTab:CreateSlider({
+   Name = "Custom Mastery Fruit",
+   Range = {0, 100000},
+   Increment = 10,
+   Suffix = "Add Mastery",
+   CurrentValue = 1000,
+   Flag = "Slider1",
+   Callback = function(Value)
+        _G.Mas = Value
+   end,
+})
+
+-- Toggle para activar la maestría personalizada
+local Toggle = FarmTab:CreateToggle({
+   Name = "Active Mastery Custom Fruit",
+   CurrentValue = true,
+   Flag = "Toggle1",
+   Callback = function(Value)
+       if Value then
+           local fruit = plr:FindFirstChild("PlayerStats") and plr.PlayerStats:FindFirstChild("UsingBloxFruit")
+           if fruit then
+               local args = {
+                   "EMMFOSS__!ZCNSJNXCSDWQSANBX",
+                   "GiveMasteryEXPTO__Smthh",
+                   {
+                       plr,
+                       fruit.Value,
+                       _G.Mas,
+                       true
+                   }
+               }
+               local RemoteEvent = ReplicatedStorage:FindFirstChild("ALLREMBINDS")
+               if RemoteEvent and RemoteEvent:FindFirstChild("MainRemoteEvent") then
+                   RemoteEvent.MainRemoteEvent:FireServer(unpack(args))
+               else
+                   warn("Error: No se encontró 'MainRemoteEvent' en ReplicatedStorage.")
+               end
+           else
+               warn("Error: No se encontró 'UsingBloxFruit' en PlayerStats.")
+           end
+       end
+   end,
+})
+
+-- Dropdown para seleccionar frutas
+local Dropdown = FruitTab:CreateDropdown({
+   Name = "Fruit Givens",
+   Options = {
+       "Dragon (East) Fruit", "Dragon (West) Fruit",
+       "Spirit Fruit", "Dough Fruit", "Hito Fruit",
+       "Barrier Fruit", "Control Fruit", "Kitsune Fruit",
+       "Leopard Fruit"
+   },
+   CurrentOption = "Dragon (West) Fruit",
+   MultiSelection = true,
+   Flag = "Dropdown1",
+   Callback = function(Option)
+        _G.selectedFruit = Option
+   end,
+})
